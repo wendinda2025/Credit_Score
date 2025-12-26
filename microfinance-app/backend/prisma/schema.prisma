@@ -1,0 +1,653 @@
+// Schéma de base de données pour la plateforme de microfinance
+// Inspiré des concepts MIFOS/Fineract mais implémentation moderne
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ORGANISATION & UTILISATEURS
+// ============================================
+
+model Organization {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  address     String?
+  phone       String?
+  email       String?
+  currency    String   @default("XOF")
+  locale      String   @default("fr")
+  timezone    String   @default("Africa/Abidjan")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  clients     Client[]
+  loanProducts LoanProduct[]
+  savingsProducts SavingsProduct[]
+  chartOfAccounts ChartOfAccount[]
+  offices     Office[]
+
+  @@map("organizations")
+}
+
+model Office {
+  id          String   @id @default(uuid())
+  organizationId String
+  code        String
+  name        String
+  address     String?
+  phone       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  users        User[]
+  clients      Client[]
+  loans        Loan[]
+  savings      SavingsAccount[]
+
+  @@unique([organizationId, code])
+  @@map("offices")
+}
+
+model User {
+  id            String   @id @default(uuid())
+  organizationId String
+  officeId      String?
+  username      String   @unique
+  email         String   @unique
+  password      String   // Hashé avec bcrypt
+  firstName     String
+  lastName      String
+  phone         String?
+  isActive      Boolean  @default(true)
+  lastLogin     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office        Office?      @relation(fields: [officeId], references: [id])
+  roles         UserRole[]
+  auditLogs     AuditLog[]
+  createdLoans  Loan[]       @relation("LoanCreator")
+  approvedLoans Loan[]       @relation("LoanApprover")
+  transactions  Transaction[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  name        String
+  description String?
+  permissions Json     // Array de permissions
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+// ============================================
+// GESTION DES CLIENTS
+// ============================================
+
+enum ClientType {
+  INDIVIDUAL
+  GROUP
+  BUSINESS
+}
+
+enum ClientStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+  BLACKLISTED
+}
+
+model Client {
+  id            String      @id @default(uuid())
+  organizationId String
+  officeId      String
+  clientNumber  String      @unique
+  type          ClientType
+  status        ClientStatus @default(ACTIVE)
+  
+  // Informations communes
+  firstName     String?
+  lastName      String?
+  businessName  String?     // Pour entreprises
+  dateOfBirth   DateTime?
+  gender        String?
+  nationalId    String?     @unique
+  taxId         String?
+  
+  // Contact
+  email         String?
+  phone         String?
+  mobile        String?
+  address       String?
+  city          String?
+  country       String?
+  
+  // KYC
+  kycDocuments  Json?       // Array de documents
+  photos        Json?       // Array de photos
+  notes         String?
+  
+  // Métadonnées
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  createdBy     String?
+  closedAt      DateTime?
+  closedBy      String?
+
+  organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office        Office       @relation(fields: [officeId], references: [id])
+  groupMembers  GroupMember[]
+  loans         Loan[]
+  savings       SavingsAccount[]
+  transactions  Transaction[]
+
+  @@index([organizationId, clientNumber])
+  @@index([status])
+  @@map("clients")
+}
+
+model GroupMember {
+  id            String   @id @default(uuid())
+  groupId       String   // ID du client de type GROUP
+  memberId      String   // ID du client membre
+  role          String?  // LEADER, MEMBER, etc.
+  joinedAt      DateTime @default(now())
+  leftAt        DateTime?
+  isActive      Boolean  @default(true)
+
+  group         Client   @relation("GroupMembers", fields: [groupId], references: [id], onDelete: Cascade)
+  member        Client   @relation("MemberGroups", fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, memberId])
+  @@map("group_members")
+}
+
+// ============================================
+// PRODUITS DE PRÊTS
+// ============================================
+
+enum InterestCalculationMethod {
+  FLAT          // Intérêt fixe
+  DECLINING     // Dégressif
+  COMPOUND      // Composé
+}
+
+enum RepaymentFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+model LoanProduct {
+  id                      String                  @id @default(uuid())
+  organizationId          String
+  code                    String
+  name                    String
+  description             String?
+  
+  // Montants
+  minLoanAmount           Decimal   @db.Decimal(15, 2)
+  maxLoanAmount           Decimal   @db.Decimal(15, 2)
+  defaultLoanAmount       Decimal?  @db.Decimal(15, 2)
+  
+  // Durée
+  minLoanTerm             Int       // En jours
+  maxLoanTerm             Int
+  defaultLoanTerm         Int?
+  
+  // Taux d'intérêt
+  interestRate            Decimal   @db.Decimal(5, 4) // Ex: 0.15 = 15%
+  interestCalculationMethod InterestCalculationMethod @default(DECLINING)
+  repaymentFrequency      RepaymentFrequency @default(MONTHLY)
+  
+  // Frais
+  processingFee           Decimal?  @db.Decimal(15, 2)
+  processingFeeType       String?   // FIXED, PERCENTAGE
+  latePaymentFee          Decimal?  @db.Decimal(15, 2)
+  latePaymentFeeType      String?   // FIXED, PERCENTAGE
+  
+  // Pénalités
+  penaltyRate             Decimal?  @db.Decimal(5, 4) // Taux journalier
+  gracePeriod             Int?      // En jours
+  
+  // Comptabilité
+  principalAccountId      String?
+  interestAccountId       String?
+  feesAccountId           String?
+  penaltyAccountId        String?
+  
+  // Statut
+  isActive                Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  organization            Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  loans                   Loan[]
+
+  @@unique([organizationId, code])
+  @@map("loan_products")
+}
+
+// ============================================
+// PRÊTS
+// ============================================
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  DISBURSED
+  ACTIVE
+  CLOSED
+  WRITTEN_OFF
+  REJECTED
+}
+
+model Loan {
+  id                    String      @id @default(uuid())
+  organizationId        String
+  officeId              String
+  clientId              String
+  loanProductId         String
+  loanNumber            String      @unique
+  
+  // Montants
+  principalAmount       Decimal     @db.Decimal(15, 2)
+  interestRate          Decimal     @db.Decimal(5, 4)
+  totalAmount           Decimal     @db.Decimal(15, 2) // Principal + Intérêts
+  
+  // Durée
+  loanTerm              Int         // En jours
+  repaymentFrequency    RepaymentFrequency
+  
+  // Dates
+  applicationDate       DateTime    @default(now())
+  approvedDate          DateTime?
+  disbursedDate         DateTime?
+  firstRepaymentDate    DateTime?
+  maturityDate          DateTime?
+  closedDate            DateTime?
+  
+  // Statut
+  status                LoanStatus  @default(PENDING)
+  
+  // Utilisateurs
+  createdBy             String
+  approvedBy            String?
+  disbursedBy           String?
+  
+  // Relations
+  organization          Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office                Office       @relation(fields: [officeId], references: [id])
+  client                Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  loanProduct           LoanProduct  @relation(fields: [loanProductId], references: [id])
+  creator               User         @relation("LoanCreator", fields: [createdBy], references: [id])
+  approver              User?        @relation("LoanApprover", fields: [approvedBy], references: [id])
+  
+  // Relations enfants
+  installments          LoanInstallment[]
+  repayments            LoanRepayment[]
+  reschedules           LoanReschedule[]
+  transactions          Transaction[]
+
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+
+  @@index([organizationId, loanNumber])
+  @@index([clientId])
+  @@index([status])
+  @@map("loans")
+}
+
+model LoanInstallment {
+  id              String   @id @default(uuid())
+  loanId          String
+  installmentNumber Int
+  dueDate         DateTime
+  principalDue    Decimal  @db.Decimal(15, 2)
+  interestDue     Decimal  @db.Decimal(15, 2)
+  feesDue         Decimal  @db.Decimal(15, 2) @default(0)
+  penaltyDue      Decimal  @db.Decimal(15, 2) @default(0)
+  totalDue        Decimal  @db.Decimal(15, 2)
+  principalPaid   Decimal  @db.Decimal(15, 2) @default(0)
+  interestPaid    Decimal  @db.Decimal(15, 2) @default(0)
+  feesPaid        Decimal  @db.Decimal(15, 2) @default(0)
+  penaltyPaid     Decimal  @db.Decimal(15, 2) @default(0)
+  totalPaid       Decimal  @db.Decimal(15, 2) @default(0)
+  isPaid          Boolean  @default(false)
+  paidDate        DateTime?
+  isOverdue       Boolean  @default(false)
+  daysOverdue     Int      @default(0)
+
+  loan            Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([loanId, installmentNumber])
+  @@index([loanId, dueDate])
+  @@map("loan_installments")
+}
+
+model LoanRepayment {
+  id              String   @id @default(uuid())
+  loanId          String
+  installmentId   String?
+  repaymentDate   DateTime @default(now())
+  principalPaid   Decimal  @db.Decimal(15, 2)
+  interestPaid    Decimal  @db.Decimal(15, 2)
+  feesPaid        Decimal  @db.Decimal(15, 2) @default(0)
+  penaltyPaid     Decimal  @db.Decimal(15, 2) @default(0)
+  totalPaid       Decimal  @db.Decimal(15, 2)
+  paymentMethod   String   // CASH, BANK_TRANSFER, MOBILE_MONEY, etc.
+  receiptNumber   String?
+  notes           String?
+  createdBy       String
+
+  loan            Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  installment     LoanInstallment? @relation(fields: [installmentId], references: [id])
+  transaction     Transaction?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([loanId, repaymentDate])
+  @@map("loan_repayments")
+}
+
+model LoanReschedule {
+  id              String   @id @default(uuid())
+  loanId          String
+  rescheduleDate  DateTime @default(now())
+  newMaturityDate DateTime
+  reason          String
+  approvedBy      String
+  notes           String?
+
+  loan            Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("loan_reschedules")
+}
+
+// ============================================
+// ÉPARGNE
+// ============================================
+
+enum SavingsAccountStatus {
+  PENDING
+  ACTIVE
+  BLOCKED
+  CLOSED
+}
+
+model SavingsProduct {
+  id                  String   @id @default(uuid())
+  organizationId      String
+  code                String
+  name                String
+  description         String?
+  minBalance          Decimal  @db.Decimal(15, 2) @default(0)
+  interestRate        Decimal  @db.Decimal(5, 4) @default(0)
+  interestCalculation String?  // DAILY, MONTHLY, YEARLY
+  interestPaymentFrequency String? // MONTHLY, QUARTERLY, YEARLY
+  accountId           String?  // Compte comptable
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  accounts            SavingsAccount[]
+
+  @@unique([organizationId, code])
+  @@map("savings_products")
+}
+
+model SavingsAccount {
+  id                  String              @id @default(uuid())
+  organizationId      String
+  officeId            String
+  clientId            String
+  savingsProductId    String
+  accountNumber       String              @unique
+  status              SavingsAccountStatus @default(PENDING)
+  balance             Decimal             @db.Decimal(15, 2) @default(0)
+  availableBalance    Decimal             @db.Decimal(15, 2) @default(0)
+  interestEarned      Decimal             @db.Decimal(15, 2) @default(0)
+  lastInterestDate    DateTime?
+  openedDate          DateTime            @default(now())
+  closedDate          DateTime?
+  closedBy            String?
+  notes               String?
+
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  office              Office       @relation(fields: [officeId], references: [id])
+  client              Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  savingsProduct      SavingsProduct @relation(fields: [savingsProductId], references: [id])
+  transactions        SavingsTransaction[]
+
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([organizationId, accountNumber])
+  @@index([clientId])
+  @@map("savings_accounts")
+}
+
+model SavingsTransaction {
+  id                  String   @id @default(uuid())
+  savingsAccountId    String
+  transactionType     String   // DEPOSIT, WITHDRAWAL, INTEREST, FEE, TRANSFER
+  amount              Decimal  @db.Decimal(15, 2)
+  balanceAfter        Decimal  @db.Decimal(15, 2)
+  transactionDate     DateTime @default(now())
+  description         String?
+  referenceNumber     String?
+  createdBy           String
+
+  savingsAccount      SavingsAccount @relation(fields: [savingsAccountId], references: [id], onDelete: Cascade)
+  transaction        Transaction?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([savingsAccountId, transactionDate])
+  @@map("savings_transactions")
+}
+
+// ============================================
+// COMPTABILITÉ
+// ============================================
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum TransactionType {
+  LOAN_DISBURSEMENT
+  LOAN_REPAYMENT
+  LOAN_INTEREST
+  LOAN_FEE
+  LOAN_PENALTY
+  SAVINGS_DEPOSIT
+  SAVINGS_WITHDRAWAL
+  SAVINGS_INTEREST
+  TRANSFER
+  ADJUSTMENT
+  JOURNAL_ENTRY
+}
+
+model ChartOfAccount {
+  id              String      @id @default(uuid())
+  organizationId  String
+  code            String      // Code comptable (ex: 101, 201, 301)
+  name            String
+  type            AccountType
+  parentId       String?
+  level           Int         @default(1)
+  isActive        Boolean     @default(true)
+  allowTransactions Boolean   @default(true)
+  description     String?
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent          ChartOfAccount? @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children        ChartOfAccount[] @relation("AccountHierarchy")
+  debitEntries    JournalEntry[]  @relation("DebitAccount")
+  creditEntries   JournalEntry[]  @relation("CreditAccount")
+
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@unique([organizationId, code])
+  @@index([organizationId, type])
+  @@map("chart_of_accounts")
+}
+
+model JournalEntry {
+  id              String          @id @default(uuid())
+  organizationId  String
+  entryNumber     String          @unique
+  entryDate       DateTime        @default(now())
+  description     String
+  transactionType TransactionType?
+  referenceId     String?         // ID de la transaction source (loan, savings, etc.)
+  referenceType   String?         // LOAN, SAVINGS, MANUAL, etc.
+  debitAccountId  String
+  creditAccountId String
+  amount          Decimal         @db.Decimal(15, 2)
+  currency        String          @default("XOF")
+  isReversed      Boolean         @default(false)
+  reversedAt      DateTime?
+  reversedBy      String?
+  createdBy       String
+  approvedBy      String?
+  approvedAt      DateTime?
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  debitAccount    ChartOfAccount @relation("DebitAccount", fields: [debitAccountId], references: [id])
+  creditAccount   ChartOfAccount @relation("CreditAccount", fields: [creditAccountId], references: [id])
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([organizationId, entryDate])
+  @@index([transactionType, referenceId])
+  @@map("journal_entries")
+}
+
+model Transaction {
+  id              String          @id @default(uuid())
+  organizationId  String
+  transactionNumber String        @unique
+  transactionDate DateTime        @default(now())
+  transactionType TransactionType
+  amount          Decimal         @db.Decimal(15, 2)
+  currency        String          @default("XOF")
+  description     String?
+  referenceId     String?         // ID de l'entité source
+  referenceType   String?         // LOAN, SAVINGS, etc.
+  
+  // Relations optionnelles
+  userId          String?
+  clientId        String?
+  loanId          String?
+  loanRepaymentId String?
+  savingsTransactionId String?
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User?        @relation(fields: [userId], references: [id])
+  client          Client?      @relation(fields: [clientId], references: [id])
+  loan            Loan?        @relation(fields: [loanId], references: [id])
+  loanRepayment   LoanRepayment? @relation(fields: [loanRepaymentId], references: [id])
+  savingsTransaction SavingsTransaction? @relation(fields: [savingsTransactionId], references: [id])
+  journalEntries  JournalEntry[]
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([organizationId, transactionDate])
+  @@index([transactionType, referenceId])
+  @@map("transactions")
+}
+
+// ============================================
+// AUDIT & JOURNALISATION
+// ============================================
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  APPROVE
+  REJECT
+  DISBURSE
+  REPAYMENT
+  DEPOSIT
+  WITHDRAWAL
+}
+
+model AuditLog {
+  id              String      @id @default(uuid())
+  organizationId  String?
+  userId          String?
+  action          AuditAction
+  entityType      String      // LOAN, CLIENT, USER, etc.
+  entityId        String?
+  oldValues       Json?
+  newValues       Json?
+  description     String?
+  ipAddress       String?
+  userAgent       String?
+  timestamp       DateTime    @default(now())
+
+  user            User?       @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, timestamp])
+  @@index([userId, timestamp])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
