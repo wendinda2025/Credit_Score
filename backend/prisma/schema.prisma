@@ -1,0 +1,550 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum LanguageCode {
+  FR
+  EN
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ClientType {
+  INDIVIDUAL
+  GROUP
+  BUSINESS
+}
+
+enum ClientStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum KycDocumentType {
+  ID_CARD
+  PASSPORT
+  RESIDENCE_PERMIT
+  BUSINESS_REGISTRATION
+  STATUTES
+  OTHER
+}
+
+enum LoanInterestType {
+  FLAT
+  DECLINING_BALANCE
+}
+
+enum RepaymentFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum LoanStatus {
+  SUBMITTED
+  APPROVED
+  DISBURSED
+  CLOSED
+  WRITTEN_OFF
+}
+
+enum LoanTransactionType {
+  DISBURSEMENT
+  REPAYMENT
+  WAIVER
+  PENALTY
+  WRITE_OFF
+}
+
+enum SavingsStatus {
+  ACTIVE
+  BLOCKED
+  CLOSED
+}
+
+enum SavingsTransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  INTEREST_POSTING
+  FEE
+}
+
+enum AccountingAccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum JournalEntryStatus {
+  POSTED
+  REVERSED
+}
+
+enum JournalLineType {
+  DEBIT
+  CREDIT
+}
+
+enum AccountingEventType {
+  LOAN_DISBURSEMENT
+  LOAN_REPAYMENT
+  SAVINGS_DEPOSIT
+  SAVINGS_WITHDRAWAL
+}
+
+enum AccountingComponent {
+  TOTAL
+  PRINCIPAL
+  INTEREST
+  FEE
+  PENALTY
+}
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  APPROVE
+  DISBURSE
+  REPAY
+  POST_JOURNAL
+  OTHER
+}
+
+model Organization {
+  id                  String       @id @default(uuid())
+  name                String
+  defaultCurrencyCode String       @default("XOF")
+  defaultLanguage     LanguageCode @default(FR)
+  createdAt           DateTime     @default(now())
+
+  offices         Office[]
+  users           User[]
+  roles           Role[]
+  clients         Client[]
+  loanProducts    LoanProduct[]
+  savingsProducts SavingsProduct[]
+  loanAccounts    LoanAccount[]
+  savingsAccounts SavingsAccount[]
+  accounts        AccountingAccount[]
+  journalEntries  JournalEntry[]
+  accountingRules AccountingRule[]
+  auditLogs       AuditLog[]
+}
+
+model Office {
+  id             String   @id @default(uuid())
+  organizationId String
+  parentOfficeId String?
+  code           String
+  name           String
+  createdAt      DateTime @default(now())
+
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  parentOffice   Office?        @relation("OfficeTree", fields: [parentOfficeId], references: [id])
+  children       Office[]       @relation("OfficeTree")
+  users          User[]
+  journalEntries JournalEntry[]
+
+  @@unique([organizationId, code])
+}
+
+model User {
+  id             String     @id @default(uuid())
+  organizationId String
+  officeId       String?
+  username       String
+  email          String?
+  passwordHash   String
+  status         UserStatus @default(ACTIVE)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+  office          Office?        @relation(fields: [officeId], references: [id])
+  roles           UserRole[]
+  refreshTokens   RefreshToken[]
+  createdJournals JournalEntry[] @relation("JournalCreatedBy")
+  auditLogs       AuditLog[]
+  loansAsOfficer  LoanAccount[]  @relation("LoanOfficer")
+
+  @@unique([organizationId, username])
+  @@index([organizationId, officeId])
+}
+
+model Role {
+  id             String  @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  users        UserRole[]
+
+  @@unique([organizationId, name])
+}
+
+model UserRole {
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Client {
+  id             String       @id @default(uuid())
+  organizationId String
+  type           ClientType
+  status         ClientStatus @default(ACTIVE)
+  externalId     String?
+  displayName    String
+  phone          String?
+  email          String?
+  address        String?
+  language       LanguageCode @default(FR)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization    Organization             @relation(fields: [organizationId], references: [id])
+  individual      IndividualClientProfile?
+  group           GroupClientProfile?
+  business        BusinessClientProfile?
+  kycDocuments    KycDocument[]
+  loanAccounts    LoanAccount[]
+  savingsAccounts SavingsAccount[]
+
+  @@unique([organizationId, externalId])
+  @@index([organizationId, type, status])
+}
+
+model IndividualClientProfile {
+  clientId    String    @id
+  firstName   String
+  lastName    String
+  gender      String?
+  dateOfBirth DateTime?
+  nationalId  String?
+  createdAt   DateTime  @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model GroupClientProfile {
+  clientId   String   @id
+  meetingDay String?
+  createdAt  DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model BusinessClientProfile {
+  clientId       String   @id
+  legalName      String
+  registrationNo String?
+  taxId          String?
+  createdAt      DateTime @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
+
+model KycDocument {
+  id         String          @id @default(uuid())
+  clientId   String
+  type       KycDocumentType
+  fileName   String
+  mimeType   String?
+  storageKey String?
+  issuedBy   String?
+  issuedAt   DateTime?
+  expiresAt  DateTime?
+  createdAt  DateTime        @default(now())
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, type])
+}
+
+model LoanProduct {
+  id                        String             @id @default(uuid())
+  organizationId            String
+  name                      String
+  currencyCode              String             @default("XOF")
+  interestType              LoanInterestType   @default(DECLINING_BALANCE)
+  interestRateAnnualPercent Decimal            @db.Decimal(9, 6)
+  repaymentFrequency        RepaymentFrequency
+  repaymentEvery            Int                @default(1)
+  numberOfRepayments        Int
+  principalMin              Decimal?           @db.Decimal(18, 2)
+  principalMax              Decimal?           @db.Decimal(18, 2)
+  disbursementFee           Decimal?           @db.Decimal(18, 2)
+  penaltyRateAnnualPercent  Decimal?           @db.Decimal(9, 6)
+  createdAt                 DateTime           @default(now())
+
+  organization Organization  @relation(fields: [organizationId], references: [id])
+  loans        LoanAccount[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId, currencyCode])
+}
+
+model LoanAccount {
+  id                        String             @id @default(uuid())
+  organizationId            String
+  clientId                  String
+  loanProductId             String
+  officerUserId             String?
+  status                    LoanStatus         @default(SUBMITTED)
+  currencyCode              String             @default("XOF")
+  principal                 Decimal            @db.Decimal(18, 2)
+  interestType              LoanInterestType   @default(DECLINING_BALANCE)
+  interestRateAnnualPercent Decimal            @db.Decimal(9, 6)
+  repaymentFrequency        RepaymentFrequency
+  repaymentEvery            Int                @default(1)
+  numberOfRepayments        Int
+  submittedAt               DateTime           @default(now())
+  approvedAt                DateTime?
+  expectedDisbursementAt    DateTime?
+  disbursedAt               DateTime?
+  firstRepaymentDate        DateTime?
+  closedAt                  DateTime?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+
+  organization Organization              @relation(fields: [organizationId], references: [id])
+  client       Client                    @relation(fields: [clientId], references: [id])
+  loanProduct  LoanProduct               @relation(fields: [loanProductId], references: [id])
+  officer      User?                     @relation("LoanOfficer", fields: [officerUserId], references: [id])
+  installments LoanScheduleInstallment[]
+  transactions LoanTransaction[]
+
+  @@index([organizationId, status])
+  @@index([clientId, status])
+}
+
+model LoanScheduleInstallment {
+  id                 String   @id @default(uuid())
+  loanAccountId      String
+  installmentNumber  Int
+  dueDate            DateTime
+  principalDue       Decimal  @db.Decimal(18, 2)
+  interestDue        Decimal  @db.Decimal(18, 2)
+  feeChargesDue      Decimal  @default(0) @db.Decimal(18, 2)
+  penaltyChargesDue  Decimal  @default(0) @db.Decimal(18, 2)
+  principalPaid      Decimal  @default(0) @db.Decimal(18, 2)
+  interestPaid       Decimal  @default(0) @db.Decimal(18, 2)
+  feeChargesPaid     Decimal  @default(0) @db.Decimal(18, 2)
+  penaltyChargesPaid Decimal  @default(0) @db.Decimal(18, 2)
+  completed          Boolean  @default(false)
+
+  loan LoanAccount @relation(fields: [loanAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([loanAccountId, installmentNumber])
+  @@index([loanAccountId, dueDate])
+}
+
+model LoanTransaction {
+  id               String              @id @default(uuid())
+  loanAccountId    String
+  type             LoanTransactionType
+  transactionDate  DateTime
+  amount           Decimal             @db.Decimal(18, 2)
+  principalPortion Decimal?            @db.Decimal(18, 2)
+  interestPortion  Decimal?            @db.Decimal(18, 2)
+  feePortion       Decimal?            @db.Decimal(18, 2)
+  penaltyPortion   Decimal?            @db.Decimal(18, 2)
+  externalRef      String?
+  createdAt        DateTime            @default(now())
+
+  loan LoanAccount @relation(fields: [loanAccountId], references: [id], onDelete: Cascade)
+
+  @@index([loanAccountId, transactionDate])
+}
+
+model SavingsProduct {
+  id                        String   @id @default(uuid())
+  organizationId            String
+  name                      String
+  currencyCode              String   @default("XOF")
+  interestRateAnnualPercent Decimal? @db.Decimal(9, 6)
+  minBalance                Decimal? @db.Decimal(18, 2)
+  allowWithdrawals          Boolean  @default(true)
+  createdAt                 DateTime @default(now())
+
+  organization Organization     @relation(fields: [organizationId], references: [id])
+  accounts     SavingsAccount[]
+
+  @@unique([organizationId, name])
+}
+
+model SavingsAccount {
+  id               String        @id @default(uuid())
+  organizationId   String
+  clientId         String
+  savingsProductId String
+  currencyCode     String        @default("XOF")
+  status           SavingsStatus @default(ACTIVE)
+  balance          Decimal       @default(0) @db.Decimal(18, 2)
+  openedAt         DateTime      @default(now())
+  closedAt         DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  organization   Organization         @relation(fields: [organizationId], references: [id])
+  client         Client               @relation(fields: [clientId], references: [id])
+  savingsProduct SavingsProduct       @relation(fields: [savingsProductId], references: [id])
+  transactions   SavingsTransaction[]
+
+  @@index([organizationId, status])
+  @@index([clientId, status])
+}
+
+model SavingsTransaction {
+  id               String                 @id @default(uuid())
+  savingsAccountId String
+  type             SavingsTransactionType
+  transactionDate  DateTime
+  amount           Decimal                @db.Decimal(18, 2)
+  balanceAfter     Decimal                @db.Decimal(18, 2)
+  createdAt        DateTime               @default(now())
+
+  account SavingsAccount @relation(fields: [savingsAccountId], references: [id], onDelete: Cascade)
+
+  @@index([savingsAccountId, transactionDate])
+}
+
+model AccountingAccount {
+  id             String                @id @default(uuid())
+  organizationId String
+  parentId       String?
+  code           String
+  name           String
+  type           AccountingAccountType
+  currencyCode   String?
+  isHeader       Boolean               @default(false)
+  isActive       Boolean               @default(true)
+  createdAt      DateTime              @default(now())
+
+  organization Organization         @relation(fields: [organizationId], references: [id])
+  parent       AccountingAccount?   @relation("AccountTree", fields: [parentId], references: [id])
+  children     AccountingAccount[]  @relation("AccountTree")
+  lines        JournalEntryLine[]
+  ruleLines    AccountingRuleLine[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, type])
+}
+
+model JournalEntry {
+  id              String             @id @default(uuid())
+  organizationId  String
+  officeId        String?
+  transactionDate DateTime
+  reference       String?
+  memo            String?
+  status          JournalEntryStatus @default(POSTED)
+  createdByUserId String
+  postedAt        DateTime           @default(now())
+  reversedById    String?
+  createdAt       DateTime           @default(now())
+
+  organization Organization       @relation(fields: [organizationId], references: [id])
+  office       Office?            @relation(fields: [officeId], references: [id])
+  createdBy    User               @relation("JournalCreatedBy", fields: [createdByUserId], references: [id])
+  lines        JournalEntryLine[]
+  reversedBy   JournalEntry?      @relation("JournalReversal", fields: [reversedById], references: [id])
+  reverses     JournalEntry[]     @relation("JournalReversal")
+
+  @@index([organizationId, transactionDate])
+}
+
+model JournalEntryLine {
+  id             String          @id @default(uuid())
+  journalEntryId String
+  accountId      String
+  entryType      JournalLineType
+  amount         Decimal         @db.Decimal(18, 2)
+  memo           String?
+
+  journalEntry JournalEntry      @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      AccountingAccount @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+}
+
+model AccountingRule {
+  id             String              @id @default(uuid())
+  organizationId String
+  eventType      AccountingEventType
+  description    String?
+  createdAt      DateTime            @default(now())
+
+  organization Organization         @relation(fields: [organizationId], references: [id])
+  lines        AccountingRuleLine[]
+
+  @@unique([organizationId, eventType])
+}
+
+model AccountingRuleLine {
+  id        String              @id @default(uuid())
+  ruleId    String
+  entryType JournalLineType
+  component AccountingComponent
+  accountId String
+  createdAt DateTime            @default(now())
+
+  rule    AccountingRule    @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  account AccountingAccount @relation(fields: [accountId], references: [id])
+
+  @@unique([ruleId, entryType, component])
+  @@index([ruleId])
+  @@index([accountId])
+}
+
+model AuditLog {
+  id             String      @id @default(uuid())
+  organizationId String
+  userId         String?
+  action         AuditAction
+  entityType     String?
+  entityId       String?
+  success        Boolean     @default(true)
+  ip             String?
+  userAgent      String?
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, action, createdAt])
+  @@index([userId, createdAt])
+}

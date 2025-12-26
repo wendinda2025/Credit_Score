@@ -1,0 +1,46 @@
+.container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px;
+  text-align: left;
+}
+
+.card {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+label {
+  display: block;
+  margin: 10px 0;
+}
+
+input {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 6px;
+}
+
+button {
+  margin-right: 10px;
+}
+
+button.secondary {
+  opacity: 0.9;
+}
+
+.muted {
+  opacity: 0.8;
+  font-size: 0.95em;
+}
+
+.pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 10px;
+  border-radius: 8px;
+}
