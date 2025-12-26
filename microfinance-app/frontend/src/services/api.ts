@@ -1,7 +1,8 @@
 import axios, { AxiosError, AxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Utilise le proxy Vite en développement, sinon l'URL complète
+const API_URL = '/api';
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -35,7 +36,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = useAuthStore.getState().refreshToken;
         if (refreshToken) {
-          const response = await axios.post(`${API_URL}/auth/refresh`, {
+          const response = await axios.post(`/api/auth/refresh`, {
             refreshToken,
           });
 
