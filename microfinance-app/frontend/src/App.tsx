@@ -7,8 +7,10 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
 import ClientDetailPage from './pages/ClientDetailPage';
+import NewClientPage from './pages/NewClientPage';
 import LoansPage from './pages/LoansPage';
 import LoanDetailPage from './pages/LoanDetailPage';
+import NewLoanPage from './pages/NewLoanPage';
 import SavingsPage from './pages/SavingsPage';
 import ReportsPage from './pages/ReportsPage';
 
@@ -44,8 +46,10 @@ const App: React.FC = () => {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="clients" element={<ClientsPage />} />
+        <Route path="clients/new" element={<NewClientPage />} />
         <Route path="clients/:id" element={<ClientDetailPage />} />
         <Route path="loans" element={<LoansPage />} />
+        <Route path="loans/new" element={<NewLoanPage />} />
         <Route path="loans/:id" element={<LoanDetailPage />} />
         <Route path="savings" element={<SavingsPage />} />
         <Route path="reports" element={<ReportsPage />} />
