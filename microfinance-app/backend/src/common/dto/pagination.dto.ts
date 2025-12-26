@@ -60,35 +60,19 @@ export class PaginationQueryDto {
   }
 }
 
-export class PaginatedResponseDto<T> {
-  @ApiProperty({ description: 'Data items' })
-  items: T[];
-
-  @ApiProperty({ description: 'Pagination metadata' })
-  meta: PaginationMetaDto;
+export interface PaginationMeta {
+  totalItems: number;
+  itemCount: number;
+  itemsPerPage: number;
+  totalPages: number;
+  currentPage: number;
+  hasNextPage: boolean;
+  hasPrevPage: boolean;
 }
 
-export class PaginationMetaDto {
-  @ApiProperty({ description: 'Total number of items' })
-  totalItems: number;
-
-  @ApiProperty({ description: 'Number of items in current page' })
-  itemCount: number;
-
-  @ApiProperty({ description: 'Number of items per page' })
-  itemsPerPage: number;
-
-  @ApiProperty({ description: 'Total number of pages' })
-  totalPages: number;
-
-  @ApiProperty({ description: 'Current page number' })
-  currentPage: number;
-
-  @ApiProperty({ description: 'Has next page' })
-  hasNextPage: boolean;
-
-  @ApiProperty({ description: 'Has previous page' })
-  hasPrevPage: boolean;
+export interface PaginatedResponse<T> {
+  items: T[];
+  meta: PaginationMeta;
 }
 
 export function createPaginatedResponse<T>(
@@ -96,7 +80,7 @@ export function createPaginatedResponse<T>(
   totalItems: number,
   page: number,
   limit: number,
-): PaginatedResponseDto<T> {
+): PaginatedResponse<T> {
   const totalPages = Math.ceil(totalItems / limit);
   
   return {

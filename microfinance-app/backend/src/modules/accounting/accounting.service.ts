@@ -208,7 +208,7 @@ export class AccountingService {
         transactionDate,
         description: dto.description,
         entityType: dto.entityType,
-        entityId: dto.entityId,
+        entityId: dto.entityId || '',
         transactionType: dto.transactionType,
         currencyCode: dto.currencyCode || 'XOF',
         createdById: userId,

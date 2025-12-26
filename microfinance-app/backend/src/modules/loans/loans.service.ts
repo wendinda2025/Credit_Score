@@ -634,8 +634,9 @@ export class LoansService {
     }
 
     // Déterminer le nouveau statut
-    let newStatus = loan.status;
-    if (newTotalOutstanding.lessThanOrEqualTo(0)) {
+    let newStatus: LoanStatus = loan.status;
+    const isClosed = newTotalOutstanding.lessThanOrEqualTo(0);
+    if (isClosed) {
       newStatus = LoanStatus.CLOSED;
     }
 
@@ -679,7 +680,7 @@ export class LoansService {
           principalOutstanding: newPrincipalOutstanding.toNumber(),
           interestOutstanding: newInterestOutstanding.toNumber(),
           totalOutstanding: newTotalOutstanding.toNumber(),
-          closedOn: newStatus === LoanStatus.CLOSED ? transactionDate : null,
+          closedOn: isClosed ? transactionDate : null,
         },
       });
 

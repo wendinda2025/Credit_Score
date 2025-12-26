@@ -260,7 +260,7 @@ model Client {
   // Profession/Activité
   occupation        String?
   employer          String?
-  monthlyIncome     Decimal?     @map("monthly_income") @db.Decimal(18, 2)
+  monthlyIncome     Decimal?     @map("monthly_income") 
   incomeSource      String?      @map("income_source")
   
   // KYC
@@ -394,14 +394,14 @@ model LoanProduct {
   currencyCode            String              @default("XOF") @map("currency_code")
   
   // Montants
-  minPrincipal            Decimal             @map("min_principal") @db.Decimal(18, 2)
-  maxPrincipal            Decimal             @map("max_principal") @db.Decimal(18, 2)
-  defaultPrincipal        Decimal             @map("default_principal") @db.Decimal(18, 2)
+  minPrincipal            Decimal             @map("min_principal") 
+  maxPrincipal            Decimal             @map("max_principal") 
+  defaultPrincipal        Decimal             @map("default_principal") 
   
   // Taux d'intérêt
-  minInterestRate         Decimal             @map("min_interest_rate") @db.Decimal(8, 4)
-  maxInterestRate         Decimal             @map("max_interest_rate") @db.Decimal(8, 4)
-  defaultInterestRate     Decimal             @map("default_interest_rate") @db.Decimal(8, 4)
+  minInterestRate         Decimal             @map("min_interest_rate") 
+  maxInterestRate         Decimal             @map("max_interest_rate") 
+  defaultInterestRate     Decimal             @map("default_interest_rate") 
   interestMethod          InterestMethod      @map("interest_method")
   interestCalculationPeriod InterestCalculationPeriod @map("interest_calculation_period")
   
@@ -416,13 +416,13 @@ model LoanProduct {
   
   // Frais
   processingFeeType       String              @default("PERCENTAGE") @map("processing_fee_type")
-  processingFeeAmount     Decimal             @default(0) @map("processing_fee_amount") @db.Decimal(18, 4)
+  processingFeeAmount     Decimal             @default(0) @map("processing_fee_amount") 
   insuranceFeeType        String              @default("PERCENTAGE") @map("insurance_fee_type")
-  insuranceFeeAmount      Decimal             @default(0) @map("insurance_fee_amount") @db.Decimal(18, 4)
+  insuranceFeeAmount      Decimal             @default(0) @map("insurance_fee_amount") 
   
   // Pénalités
   penaltyType             String              @default("PERCENTAGE") @map("penalty_type")
-  penaltyRate             Decimal             @default(0) @map("penalty_rate") @db.Decimal(8, 4)
+  penaltyRate             Decimal             @default(0) @map("penalty_rate") 
   gracePeriodDays         Int                 @default(0) @map("grace_period_days")
   
   // Période de grâce principal
@@ -476,7 +476,7 @@ model Charge {
   chargeAppliesTo String  @map("charge_applies_to") // LOAN, SAVINGS
   chargeTimeType  String  @map("charge_time_type") // DISBURSEMENT, SPECIFIED_DUE_DATE, INSTALLMENT
   chargeCalculationType String @map("charge_calculation_type") // FLAT, PERCENTAGE_AMOUNT
-  amount          Decimal @db.Decimal(18, 4)
+  amount          Decimal 
   isActive        Boolean @default(true) @map("is_active")
   isPenalty       Boolean @default(false) @map("is_penalty")
   
@@ -515,15 +515,15 @@ model Loan {
   loanOfficerId         String?             @map("loan_officer_id")
   
   // Montants
-  principalAmount       Decimal             @map("principal_amount") @db.Decimal(18, 2)
-  approvedPrincipal     Decimal?            @map("approved_principal") @db.Decimal(18, 2)
-  disbursedAmount       Decimal?            @map("disbursed_amount") @db.Decimal(18, 2)
+  principalAmount       Decimal             @map("principal_amount") 
+  approvedPrincipal     Decimal?            @map("approved_principal") 
+  disbursedAmount       Decimal?            @map("disbursed_amount") 
   currencyCode          String              @default("XOF") @map("currency_code")
   
   // Termes
   numberOfRepayments    Int                 @map("number_of_repayments")
   repaymentFrequency    RepaymentFrequency  @map("repayment_frequency")
-  interestRate          Decimal             @map("interest_rate") @db.Decimal(8, 4)
+  interestRate          Decimal             @map("interest_rate") 
   interestMethod        InterestMethod      @map("interest_method")
   amortizationType      AmortizationType    @map("amortization_type")
   
@@ -539,21 +539,21 @@ model Loan {
   status                LoanStatus          @default(PENDING_APPROVAL)
   
   // Soldes calculés
-  totalExpectedRepayment Decimal            @default(0) @map("total_expected_repayment") @db.Decimal(18, 2)
-  totalPrincipalRepaid  Decimal             @default(0) @map("total_principal_repaid") @db.Decimal(18, 2)
-  totalInterestRepaid   Decimal             @default(0) @map("total_interest_repaid") @db.Decimal(18, 2)
-  totalFeesRepaid       Decimal             @default(0) @map("total_fees_repaid") @db.Decimal(18, 2)
-  totalPenaltiesRepaid  Decimal             @default(0) @map("total_penalties_repaid") @db.Decimal(18, 2)
-  totalOverpaid         Decimal             @default(0) @map("total_overpaid") @db.Decimal(18, 2)
-  totalOutstanding      Decimal             @default(0) @map("total_outstanding") @db.Decimal(18, 2)
-  principalOutstanding  Decimal             @default(0) @map("principal_outstanding") @db.Decimal(18, 2)
-  interestOutstanding   Decimal             @default(0) @map("interest_outstanding") @db.Decimal(18, 2)
-  feesOutstanding       Decimal             @default(0) @map("fees_outstanding") @db.Decimal(18, 2)
-  penaltiesOutstanding  Decimal             @default(0) @map("penalties_outstanding") @db.Decimal(18, 2)
+  totalExpectedRepayment Decimal            @default(0) @map("total_expected_repayment") 
+  totalPrincipalRepaid  Decimal             @default(0) @map("total_principal_repaid") 
+  totalInterestRepaid   Decimal             @default(0) @map("total_interest_repaid") 
+  totalFeesRepaid       Decimal             @default(0) @map("total_fees_repaid") 
+  totalPenaltiesRepaid  Decimal             @default(0) @map("total_penalties_repaid") 
+  totalOverpaid         Decimal             @default(0) @map("total_overpaid") 
+  totalOutstanding      Decimal             @default(0) @map("total_outstanding") 
+  principalOutstanding  Decimal             @default(0) @map("principal_outstanding") 
+  interestOutstanding   Decimal             @default(0) @map("interest_outstanding") 
+  feesOutstanding       Decimal             @default(0) @map("fees_outstanding") 
+  penaltiesOutstanding  Decimal             @default(0) @map("penalties_outstanding") 
   
   // Arriérés
   daysInArrears         Int                 @default(0) @map("days_in_arrears")
-  arrearsAmount         Decimal             @default(0) @map("arrears_amount") @db.Decimal(18, 2)
+  arrearsAmount         Decimal             @default(0) @map("arrears_amount") 
   
   // Grâce
   principalGracePeriod  Int                 @default(0) @map("principal_grace_period")
@@ -599,23 +599,23 @@ model LoanSchedule {
   dueDate               DateTime @map("due_date")
   
   // Montants dus
-  principalDue          Decimal  @map("principal_due") @db.Decimal(18, 2)
-  interestDue           Decimal  @map("interest_due") @db.Decimal(18, 2)
-  feesDue               Decimal  @default(0) @map("fees_due") @db.Decimal(18, 2)
-  penaltiesDue          Decimal  @default(0) @map("penalties_due") @db.Decimal(18, 2)
-  totalDue              Decimal  @map("total_due") @db.Decimal(18, 2)
+  principalDue          Decimal  @map("principal_due") 
+  interestDue           Decimal  @map("interest_due") 
+  feesDue               Decimal  @default(0) @map("fees_due") 
+  penaltiesDue          Decimal  @default(0) @map("penalties_due") 
+  totalDue              Decimal  @map("total_due") 
   
   // Montants payés
-  principalPaid         Decimal  @default(0) @map("principal_paid") @db.Decimal(18, 2)
-  interestPaid          Decimal  @default(0) @map("interest_paid") @db.Decimal(18, 2)
-  feesPaid              Decimal  @default(0) @map("fees_paid") @db.Decimal(18, 2)
-  penaltiesPaid         Decimal  @default(0) @map("penalties_paid") @db.Decimal(18, 2)
-  totalPaid             Decimal  @default(0) @map("total_paid") @db.Decimal(18, 2)
+  principalPaid         Decimal  @default(0) @map("principal_paid") 
+  interestPaid          Decimal  @default(0) @map("interest_paid") 
+  feesPaid              Decimal  @default(0) @map("fees_paid") 
+  penaltiesPaid         Decimal  @default(0) @map("penalties_paid") 
+  totalPaid             Decimal  @default(0) @map("total_paid") 
   
   // Solde
-  principalOutstanding  Decimal  @map("principal_outstanding") @db.Decimal(18, 2)
-  interestOutstanding   Decimal  @map("interest_outstanding") @db.Decimal(18, 2)
-  totalOutstanding      Decimal  @map("total_outstanding") @db.Decimal(18, 2)
+  principalOutstanding  Decimal  @map("principal_outstanding") 
+  interestOutstanding   Decimal  @map("interest_outstanding") 
+  totalOutstanding      Decimal  @map("total_outstanding") 
   
   // Statut
   isPaid                Boolean  @default(false) @map("is_paid")
@@ -649,17 +649,17 @@ model LoanTransaction {
   loanId                String              @map("loan_id")
   transactionType       LoanTransactionType @map("transaction_type")
   transactionDate       DateTime            @map("transaction_date")
-  amount                Decimal             @db.Decimal(18, 2)
+  amount                Decimal             
   
   // Décomposition
-  principalPortion      Decimal             @default(0) @map("principal_portion") @db.Decimal(18, 2)
-  interestPortion       Decimal             @default(0) @map("interest_portion") @db.Decimal(18, 2)
-  feesPortion           Decimal             @default(0) @map("fees_portion") @db.Decimal(18, 2)
-  penaltiesPortion      Decimal             @default(0) @map("penalties_portion") @db.Decimal(18, 2)
-  overpaymentPortion    Decimal             @default(0) @map("overpayment_portion") @db.Decimal(18, 2)
+  principalPortion      Decimal             @default(0) @map("principal_portion") 
+  interestPortion       Decimal             @default(0) @map("interest_portion") 
+  feesPortion           Decimal             @default(0) @map("fees_portion") 
+  penaltiesPortion      Decimal             @default(0) @map("penalties_portion") 
+  overpaymentPortion    Decimal             @default(0) @map("overpayment_portion") 
   
   // Solde après transaction
-  outstandingBalance    Decimal             @map("outstanding_balance") @db.Decimal(18, 2)
+  outstandingBalance    Decimal             @map("outstanding_balance") 
   
   // Références
   paymentTypeId         String?             @map("payment_type_id")
@@ -691,10 +691,10 @@ model LoanCharge {
   id              String   @id @default(uuid())
   loanId          String   @map("loan_id")
   chargeId        String   @map("charge_id")
-  amount          Decimal  @db.Decimal(18, 2)
-  amountPaid      Decimal  @default(0) @map("amount_paid") @db.Decimal(18, 2)
-  amountOutstanding Decimal @map("amount_outstanding") @db.Decimal(18, 2)
-  amountWaived    Decimal  @default(0) @map("amount_waived") @db.Decimal(18, 2)
+  amount          Decimal  
+  amountPaid      Decimal  @default(0) @map("amount_paid") 
+  amountOutstanding Decimal @map("amount_outstanding") 
+  amountWaived    Decimal  @default(0) @map("amount_waived") 
   dueDate         DateTime? @map("due_date")
   isPaid          Boolean  @default(false) @map("is_paid")
   isWaived        Boolean  @default(false) @map("is_waived")
@@ -712,7 +712,7 @@ model LoanCollateral {
   loanId      String   @map("loan_id")
   type        String
   description String
-  value       Decimal  @db.Decimal(18, 2)
+  value       Decimal  
   
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -729,7 +729,7 @@ model LoanGuarantor {
   relationship  String
   phoneNumber   String   @map("phone_number")
   address       String?
-  guaranteeAmount Decimal @map("guarantee_amount") @db.Decimal(18, 2)
+  guaranteeAmount Decimal @map("guarantee_amount") 
   
   createdAt     DateTime @default(now()) @map("created_at")
 
@@ -743,8 +743,8 @@ model LoanDisbursementDetail {
   loanId            String   @map("loan_id")
   expectedDate      DateTime @map("expected_date")
   actualDate        DateTime? @map("actual_date")
-  principal         Decimal  @db.Decimal(18, 2)
-  approvedPrincipal Decimal? @map("approved_principal") @db.Decimal(18, 2)
+  principal         Decimal  
+  approvedPrincipal Decimal? @map("approved_principal") 
   
   loan Loan @relation(fields: [loanId], references: [id], onDelete: Cascade)
 
@@ -781,18 +781,18 @@ model SavingsProduct {
   accountType             SavingsAccountType @map("account_type")
   
   // Montants
-  minOpeningBalance       Decimal            @default(0) @map("min_opening_balance") @db.Decimal(18, 2)
-  minBalanceForInterest   Decimal            @default(0) @map("min_balance_for_interest") @db.Decimal(18, 2)
+  minOpeningBalance       Decimal            @default(0) @map("min_opening_balance") 
+  minBalanceForInterest   Decimal            @default(0) @map("min_balance_for_interest") 
   
   // Intérêts
-  nominalAnnualInterestRate Decimal          @default(0) @map("nominal_annual_interest_rate") @db.Decimal(8, 4)
+  nominalAnnualInterestRate Decimal          @default(0) @map("nominal_annual_interest_rate") 
   interestCompoundingPeriod String           @default("MONTHLY") @map("interest_compounding_period")
   interestPostingPeriod   String             @default("MONTHLY") @map("interest_posting_period")
   interestCalculationType String             @default("DAILY_BALANCE") @map("interest_calculation_type")
   
   // Retraits
   allowWithdrawals        Boolean            @default(true) @map("allow_withdrawals")
-  minWithdrawalAmount     Decimal            @default(0) @map("min_withdrawal_amount") @db.Decimal(18, 2)
+  minWithdrawalAmount     Decimal            @default(0) @map("min_withdrawal_amount") 
   
   // Comptabilité
   savingsReferenceAccountId String?          @map("savings_reference_account_id")
@@ -821,20 +821,20 @@ model SavingsAccount {
   currencyCode          String              @default("XOF") @map("currency_code")
   
   // Soldes
-  accountBalance        Decimal             @default(0) @map("account_balance") @db.Decimal(18, 2)
-  availableBalance      Decimal             @default(0) @map("available_balance") @db.Decimal(18, 2)
-  blockedAmount         Decimal             @default(0) @map("blocked_amount") @db.Decimal(18, 2)
+  accountBalance        Decimal             @default(0) @map("account_balance") 
+  availableBalance      Decimal             @default(0) @map("available_balance") 
+  blockedAmount         Decimal             @default(0) @map("blocked_amount") 
   
   // Intérêts
-  nominalAnnualInterestRate Decimal         @map("nominal_annual_interest_rate") @db.Decimal(8, 4)
-  totalInterestEarned   Decimal             @default(0) @map("total_interest_earned") @db.Decimal(18, 2)
-  totalInterestPosted   Decimal             @default(0) @map("total_interest_posted") @db.Decimal(18, 2)
+  nominalAnnualInterestRate Decimal         @map("nominal_annual_interest_rate") 
+  totalInterestEarned   Decimal             @default(0) @map("total_interest_earned") 
+  totalInterestPosted   Decimal             @default(0) @map("total_interest_posted") 
   lastInterestCalculationDate DateTime?     @map("last_interest_calculation_date")
   lastInterestPostingDate DateTime?         @map("last_interest_posting_date")
   
   // Totaux
-  totalDeposits         Decimal             @default(0) @map("total_deposits") @db.Decimal(18, 2)
-  totalWithdrawals      Decimal             @default(0) @map("total_withdrawals") @db.Decimal(18, 2)
+  totalDeposits         Decimal             @default(0) @map("total_deposits") 
+  totalWithdrawals      Decimal             @default(0) @map("total_withdrawals") 
   
   // Statut
   status                SavingsAccountStatus @default(PENDING_APPROVAL)
@@ -879,8 +879,8 @@ model SavingsTransaction {
   savingsAccountId      String                 @map("savings_account_id")
   transactionType       SavingsTransactionType @map("transaction_type")
   transactionDate       DateTime               @map("transaction_date")
-  amount                Decimal                @db.Decimal(18, 2)
-  runningBalance        Decimal                @map("running_balance") @db.Decimal(18, 2)
+  amount                Decimal                
+  runningBalance        Decimal                @map("running_balance") 
   
   // Références
   paymentTypeId         String?                @map("payment_type_id")
@@ -911,7 +911,7 @@ model SavingsTransaction {
 model SavingsHold {
   id               String    @id @default(uuid())
   savingsAccountId String    @map("savings_account_id")
-  amount           Decimal   @db.Decimal(18, 2)
+  amount           Decimal   
   reason           String
   isActive         Boolean   @default(true) @map("is_active")
   holdDate         DateTime  @map("hold_date")
@@ -1008,8 +1008,8 @@ model JournalEntryLine {
   journalEntryId  String   @map("journal_entry_id")
   glAccountId     String   @map("gl_account_id")
   
-  debitAmount     Decimal  @default(0) @map("debit_amount") @db.Decimal(18, 2)
-  creditAmount    Decimal  @default(0) @map("credit_amount") @db.Decimal(18, 2)
+  debitAmount     Decimal  @default(0) @map("debit_amount") 
+  creditAmount    Decimal  @default(0) @map("credit_amount") 
   
   description     String?
 
@@ -1071,7 +1071,7 @@ model ExchangeRate {
   id              String   @id @default(uuid())
   fromCurrency    String   @map("from_currency")
   toCurrency      String   @map("to_currency")
-  rate            Decimal  @db.Decimal(18, 8)
+  rate            Decimal  
   effectiveDate   DateTime @map("effective_date")
   
   createdAt       DateTime @default(now()) @map("created_at")

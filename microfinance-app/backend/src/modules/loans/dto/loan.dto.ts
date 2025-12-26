@@ -18,6 +18,7 @@ import { Type } from 'class-transformer';
 import {
   LoanStatus,
   InterestMethod,
+  InterestCalculationPeriod,
   AmortizationType,
   RepaymentFrequency,
 } from '@prisma/client';
@@ -91,6 +92,14 @@ export class CreateLoanProductDto {
   })
   @IsEnum(InterestMethod)
   interestMethod: InterestMethod;
+
+  @ApiProperty({
+    description: 'Période de calcul des intérêts',
+    enum: InterestCalculationPeriod,
+    default: InterestCalculationPeriod.SAME_AS_REPAYMENT,
+  })
+  @IsEnum(InterestCalculationPeriod)
+  interestCalculationPeriod: InterestCalculationPeriod = InterestCalculationPeriod.SAME_AS_REPAYMENT;
 
   // Durée
   @ApiProperty({ description: 'Durée minimum (mois)', example: 1 })
