@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  # Base de données PostgreSQL
+  db:
+    image: postgres:15-alpine
+    container_name: pamf_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pamf_credit
+      POSTGRES_USER: pamf_user
+      POSTGRES_PASSWORD: pamf_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - pamf_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pamf_user -d pamf_credit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend FastAPI
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pamf_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://pamf_user:pamf_password@db:5432/pamf_credit
+      SECRET_KEY: changez-cette-cle-en-production
+      DEBUG: "False"
+      ENVIRONMENT: production
+    volumes:
+      - ./backend:/app
+      - uploads_data:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - pamf_network
+    command: >
+      sh -c "
+        alembic upgrade head &&
+        python -m app.utils.init_db &&
+        uvicorn app.main:app --host 0.0.0.0 --port 8000
+      "
+
+  # Frontend React
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pamf_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - pamf_network
+
+  # Nginx (optionnel, pour la production)
+  nginx:
+    image: nginx:alpine
+    container_name: pamf_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - pamf_network
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+  uploads_data:
+
+networks:
+  pamf_network:
+    driver: bridge
