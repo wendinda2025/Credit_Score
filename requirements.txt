@@ -1,0 +1,39 @@
+# Application principale
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Base de données
+sqlalchemy==2.0.23
+alembic==1.12.1
+psycopg2-binary==2.9.9
+
+# Sécurité
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+
+# Logging et monitoring
+structlog==23.2.0
+python-json-logger==2.0.7
+
+# Validation et utilitaires
+email-validator==2.1.0
+python-dateutil==2.8.2
+
+# Tests
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2
+faker==20.1.0
+
+# Développement
+black==23.11.0
+flake8==6.1.0
+mypy==1.7.0
+isort==5.12.0
+
+# Environnement
+python-dotenv==1.0.0
